@@ -1,6 +1,7 @@
 import cgi, re, json
 import worker
 import notifications
+import traceback
 
 def root(environ):
     post = cgi.FieldStorage(
@@ -8,11 +9,10 @@ def root(environ):
         environ=environ,
         keep_blank_values=True
         )
-
-
-    payload = json.loads(post['payload'].value)
-
+    email = post['email'].value if 'email' in post else None
+    verbose = 'verbose' in post
     try:
+        payload = json.loads(post['payload'].value)
         slug = payload['repository']['slug']
         target = "git+ssh://git@github.com/" + post['github'].value 
         if not target.endswith(".git"):
@@ -31,12 +31,12 @@ def root(environ):
             if not source.endswith('.git'): source += '.git'
 
         print("synch %s to %s using %s, branches are %s" % (source, target, scm, branches))
-        worker.synch.delay(slug, source, target, scm, branches)
+        worker.synch.delay(slug, source, target, scm, branches, email, verbose)
         return [b'Ok']
     except Exception as exe:
-        if 'email' in post:
-            notifications.send_message(email, str(exe), "Exception reading task data")
-
+        if email:
+            notifications.send_message(email, traceback.format_exc(), "Exception reading task data")
+        return [b'Error']
 
 def reghandler(regex, fn):
     def select(environ):
