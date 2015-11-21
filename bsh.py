@@ -14,7 +14,7 @@ def root(environ):
     try:
         payload = json.loads(post['payload'].value)
         slug = payload['repository']['slug']
-        target = "git+ssh://git@github.com/" + post['github'].value 
+        target = "git+ssh://git@github.com/" + post['github'].value
         if not target.endswith(".git"):
             target += ".git"
         scm = payload['repository']['scm']
@@ -30,12 +30,14 @@ def root(environ):
             if source.endswith('/'): source = source[:-1]
             if not source.endswith('.git'): source += '.git'
 
-        print("synch %s to %s using %s, branches are %s" % (source, target, scm, branches))
+        print("synch %s to %s using %s, branches are %s" % (
+            source, target, scm, branches))
         worker.synch.delay(slug, source, target, scm, branches, email, verbose)
         return [b'Ok']
     except Exception as exe:
         if email:
-            notifications.send_message(email, traceback.format_exc(), "Exception reading task data")
+            notifications.send_message(email, traceback.format_exc(),
+                                       "Exception reading task data")
         return [b'Error']
 
 def reghandler(regex, fn):
@@ -58,10 +60,10 @@ def application(environ, start_response):
         status = "404 Not Found"
         out = [b"Not Found"]
     else:
-        status = '200 OK' 
+        status = '200 OK'
         out = handler(environ)
 
-    headers = [('Content-type', 'text/plain')] 
+    headers = [('Content-type', 'text/plain')]
     start_response(status, headers)
 
     return out
